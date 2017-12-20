@@ -57,9 +57,8 @@ func sendAround(conn *net.UDPConn, msg Message, ports []int, myport int, ttl int
 	for i := 0; i < ttl ; i++ {
 		pNum := rand.Intn(len(ports))
 		ReceiverAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+strconv.Itoa(ports[pNum]))
-		if myport == 10002 {
-			fmt.Println(strconv.Itoa(ports[pNum]))			
-		}
+
+
 		CheckError(err)
 			
 		_,err = conn.WriteToUDP(buf, ReceiverAddr)
@@ -101,7 +100,7 @@ func deletePorts(ports []int, portsToDelete []int) ([]int){
 	return filteredPorts
 }
 
-func processBody (self Node, ttl int,tstr int, neighbours []Node, wg *sync.WaitGroup){
+func processBody (self Node, ttl int,tstr int, neighbours []Node, nodesCount int, wg *sync.WaitGroup){
 	fmt.Println("Routine ran")
 	
 	pid := self.id
@@ -127,7 +126,7 @@ func processBody (self Node, ttl int,tstr int, neighbours []Node, wg *sync.WaitG
 	CheckError(err)
 
 	var receivedMsgs []int
-	expectedConfCount := len(fPorts)
+	expectedConfCount := nodesCount - 1
 	startTime := time.Now()
 	if myport == "10001" {
 		
@@ -177,8 +176,10 @@ func processBody (self Node, ttl int,tstr int, neighbours []Node, wg *sync.WaitG
 				go sendAround(ServerConn, nMsg, fPorts, myPortInt, ttl, t)						
 			} else {
 				expectedConfCount--
-				fmt.Println(expectedConfCount, "least")
-				
+				//fmt.Println(expectedConfCount, "least")
+				if myport == "10001" {
+					fmt.Println(expectedConfCount)					
+				}	
 				if expectedConfCount == 0 {
 					break							
 				}
@@ -189,7 +190,7 @@ func processBody (self Node, ttl int,tstr int, neighbours []Node, wg *sync.WaitG
 		fmt.Println((time.Now().Sub(startTime))/t)		
 		
 	}		
-	fmt.Println("I've done")		
+	//fmt.Println("I've done")		
 	wg.Done()
 }
 
@@ -205,7 +206,7 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(len(graph))
 	for self, neighbours := range graph {	
-		go processBody(self,ttl,tstr,neighbours,&wg)
+		go processBody(self,ttl,tstr,neighbours,128,&wg)
 	}
 	wg.Wait()
 	
